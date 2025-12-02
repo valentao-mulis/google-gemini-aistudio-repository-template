@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Ka Bwangu Bwangu Salary Advance",
+  "description": "A professional web application for Ka Bwangu Bwangu, allowing clients to calculate their eligible loan amount and submit an application.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
