@@ -1,3 +1,4 @@
+
 import React from 'react';
 import AdminChatbot from './AdminChatbot';
 import { firestore } from '../firebaseConfig';
@@ -36,7 +37,9 @@ const AdminView = ({ applicationId, onBack }: AdminViewProps) => {
     const [pendingStatus, setPendingStatus] = React.useState<string>(''); // For the dropdown
     const [rejectionReason, setRejectionReason] = React.useState('');
     const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
+    const [isGeneratingImage, setIsGeneratingImage] = React.useState(false);
     const [showPdfPreview, setShowPdfPreview] = React.useState(false);
+    const [viewImageSrc, setViewImageSrc] = React.useState<string | null>(null);
     const [isRejectModalOpen, setIsRejectModalOpen] = React.useState(false);
     
     const pdfPreviewRef = React.useRef<HTMLDivElement>(null);
@@ -224,6 +227,37 @@ const AdminView = ({ applicationId, onBack }: AdminViewProps) => {
             setIsGeneratingPdf(false);
         }
     };
+
+    const handleViewImage = async () => {
+        const { html2canvas } = window;
+        if (!pdfPreviewRef.current || !html2canvas) {
+            alert("Image library is not loaded.");
+            return;
+        }
+
+        setIsGeneratingImage(true);
+        const element = pdfPreviewRef.current;
+        
+        const originalTransform = element.style.transform;
+        element.style.transform = 'none';
+
+        try {
+            const canvas = await html2canvas(element, {
+                scale: 1.5,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff'
+            });
+            const imgData = canvas.toDataURL('image/png');
+            setViewImageSrc(imgData);
+        } catch (error) {
+            console.error("Error generating image:", error);
+            alert("Failed to generate image view.");
+        } finally {
+            element.style.transform = originalTransform;
+            setIsGeneratingImage(false);
+        }
+    };
     
     const getWhatsAppUrl = (phone: string) => {
         if (!phone) return '#';
@@ -252,7 +286,7 @@ const AdminView = ({ applicationId, onBack }: AdminViewProps) => {
 
                 {/* Left Column: Data & Actions */}
                 <div className="lg:col-span-2 bg-white rounded-xl shadow-lg">
-                    <header className="p-6 border-b flex justify-between items-center">
+                    <header className="p-6 border-b flex justify-between items-center flex-wrap gap-4">
                         <div>
                             <button onClick={onBack} className="text-gray-500 hover:text-gray-800 flex items-center gap-2 mb-2">
                                 <i className="fa-solid fa-arrow-left"></i> Back to Dashboard
@@ -261,12 +295,18 @@ const AdminView = ({ applicationId, onBack }: AdminViewProps) => {
                             <p className="text-gray-500">Application ID: {application.id}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setShowPdfPreview(!showPdfPreview)} className="text-gray-500 hover:text-blue-600 font-medium py-2 px-3 rounded-lg hover:bg-gray-100 transition flex items-center gap-2" title="Toggle PDF Preview">
+                            <button onClick={() => setShowPdfPreview(!showPdfPreview)} className="text-gray-500 hover:text-blue-600 font-medium py-2 px-3 rounded-lg hover:bg-gray-100 transition flex items-center gap-2" title="Toggle Layout Preview">
                                  <i className={`fa-solid ${showPdfPreview ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                             </button>
+                            
+                            <button onClick={handleViewImage} disabled={isGeneratingImage} className="bg-orange-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-orange-600 transition flex items-center gap-2 disabled:bg-orange-300">
+                                {isGeneratingImage ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-image"></i>}
+                                View Image
+                            </button>
+
                             <button onClick={handleGeneratePdf} disabled={isGeneratingPdf} className="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:bg-blue-300">
                                 {isGeneratingPdf ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-file-pdf"></i>}
-                                Generate Form
+                                PDF
                             </button>
                              <button onClick={handleDelete} className="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition">
                                 <i className="fa-solid fa-trash"></i>
@@ -422,7 +462,30 @@ const AdminView = ({ applicationId, onBack }: AdminViewProps) => {
                 </div>
             )}
 
-            {/* PDF Generation Layout */}
+            {/* Generated Image View Modal */}
+            {viewImageSrc && (
+                <div className="fixed inset-0 z-[120] bg-black/90 flex flex-col items-center justify-center p-4 animate-fade-in">
+                    <div className="absolute top-0 w-full flex justify-end p-4">
+                        <button onClick={() => setViewImageSrc(null)} className="text-white hover:text-gray-300 transition p-2">
+                            <i className="fa-solid fa-times text-3xl"></i>
+                        </button>
+                    </div>
+                    <div className="flex-1 w-full max-w-5xl flex items-center justify-center overflow-auto p-4">
+                        <img src={viewImageSrc} alt="Application Form" className="max-h-full max-w-full object-contain rounded shadow-lg" />
+                    </div>
+                    <div className="p-4 w-full flex justify-center gap-4">
+                        <a 
+                            href={viewImageSrc} 
+                            download={`Application_${application.firstName}_${application.surname}.png`} 
+                            className="bg-white text-gray-900 px-6 py-3 rounded-full font-bold hover:bg-gray-100 transition shadow-lg flex items-center gap-2"
+                        >
+                            <i className="fa-solid fa-download"></i> Download Image
+                        </a>
+                    </div>
+                </div>
+            )}
+
+            {/* PDF Generation Layout (Hidden unless preview is on) */}
             <div 
                 className={showPdfPreview ? "fixed inset-0 z-50 bg-gray-900/80 flex items-center justify-center overflow-auto p-8" : "fixed -left-[9999px] top-0"} 
                 aria-hidden={!showPdfPreview}

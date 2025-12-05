@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ApplicationFormData, ScheduleEntry } from '../types';
 import SignaturePad from './SignaturePad';
@@ -119,6 +120,7 @@ const ApplicationForm = ({ loanSummary, schedule, onSubmitSuccess }: {
       "First National Bank (FNB)",
       "Indo-Zambia Bank",
       "Investrust Bank",
+      "Natsave",
       "Stanbic Bank",
       "Standard Chartered Bank",
       "United Bank for Africa (UBA)",
